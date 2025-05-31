@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team-Management-Website</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1em;
+        }
+        nav {
+            background-color: #444;
+            padding: 1em;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 1em;
+        }
+        .container {
+            max-width: 800px;
+            margin: 2em auto;
+            padding: 0 1em;
+        }
+        .section {
+            background-color: white;
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        .admin-only {
+            display: none;
+        }
+        textarea, input[type="text"], input[type="date"], input[type="time"], input[type="password"] {
+            width: 100%;
+            padding: 0.5em;
+            margin: 0.5em 0;
+        }
+        button {
+            padding: 0.5em 1em;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        footer {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 1em;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginScreen" class="section">
+        <h2>Login</h2>
+        <p>Bitte gib den PIN ein, um die Website zu betreten:</p>
+        <input type="password" id="sitePin" placeholder="PIN eingeben">
+        <button onclick="checkSitePin()">Website betreten</button>
+        <p>Teamleiter: Gib den Admin-PIN ein, um Bearbeitungsrechte zu erhalten:</p>
+        <input type="password" id="adminPin" placeholder="Admin-PIN eingeben">
+        <button onclick="checkAdminPin()">Als Teamleiter einloggen</button>
+        <p id="loginError" style="color: red;"></p>
+    </div>
+
+    <div id="mainContent" class="hidden">
+        <header>
+            <h1>Team-Management-Website</h1>
+        </header>
+        <nav>
+            <a href="#announcements">Ankündigungen</a>
+            <a href="#roles">Rollen</a>
+            <a href="#warnings">Warnungen</a>
+            <a href="#meetings">Team-Besprechungen</a>
+            <a href="#calendar">Kalender</a>
+        </nav>
+        <div class="container">
+            <div id="announcements" class="section">
+                <h2>Ankündigungen</h2>
+                <div id="announcementList"></div>
+                <div class="admin-only">
+                    <h3>Ankündigung hinzufügen (Teamleiter)</h3>
+                    <textarea id="newAnnouncement" placeholder="Neue Ankündigung"></textarea>
+                    <button onclick="addAnnouncement()">Ankündigung veröffentlichen</button>
+                </div>
+            </div>
+
+            <div id="roles" class="section">
+                <h2>Rollen</h2>
+                <p>Aktuelle Teamleiter: <span id="teamLeaders">Noch keine Teamleiter zugeteilt</span></p>
+                <div class="admin-only">
+                    <h3>Rolle zuweisen (Teamleiter)</h3>
+                    <input type="text" id="newTeamLeader" placeholder="Name des neuen Teamleiters">
+                    <button onclick="assignTeamLeader()">Teamleiter zuweisen</button>
+                </div>
+            </div>
+
+            <div id="warnings" class="section">
+                <h2>Team-Warnungen</h2>
+                <p>Deine Warnungen: <span id="userWarnings">Keine Warnungen</span></p>
+                <div class="admin-only">
+                    <h3>Warnung eintragen (Teamleiter)</h3>
+                    <input type="text" id="warnMember" placeholder="Name des Teammitglieds">
+                    <textarea id="warnReason" placeholder="Grund der Warnung"></textarea>
+                    <button onclick="addWarning()">Warnung eintragen</button>
+                    <h3>Alle Warnungen</h3>
+                    <div id="allWarnings"></div>
+                </div>
+            </div>
+
+            <div id="meetings" class="section">
+                <h2>Team-Besprechungen</h2>
+                <p>Nächste Besprechung: <span id="nextMeeting">Noch keine Besprechung geplant</span></p>
+                <div class="admin-only">
+                    <h3>Besprechung planen (Teamleiter)</h3>
+                    <input type="date" id="meetingDate">
+                    <input type="time" id="meetingTime">
+                    <input type="text" id="meetingLocation" placeholder="Ort der Besprechung">
+                    <button onclick="planMeeting()">Besprechung eintragen</button>
+                </div>
+            </div>
+
+            <div id="calendar" class="section">
+                <h2>Kalender</h2>
+                <div id="calendarEvents"></div>
+                <div class="admin-only">
+                    <h3>Termin hinzufügen (Teamleiter)</h3>
+                    <input type="date" id="eventDate">
+                    <input type="time" id="eventTime">
+                    <input type="text" id="eventDescription" placeholder="Beschreibung des Termins">
+                    <button onclick="addEvent()">Termin eintragen</button>
+                </div>
+            </div>
+        </div>
+        <footer>
+            <p>© 2025 Team-Management-Website. Alle Rechte vorbehalten.</p>
+        </footer>
+    </div>
+
+    <script>
+        const SITE_PIN = "3571";
+        const ADMIN_PIN = "2000";
+        let isAdmin = false;
+
+        function checkSitePin() {
+            const pin = document.getElementById("sitePin").value;
+            if (pin === SITE_PIN) {
+                document.getElementById("loginScreen").classList.add("hidden");
+                document.getElementById("mainContent").classList.remove("hidden");
+                document.getElementById("loginError").textContent = "";
+            } else {
+                document.getElementById("loginError").textContent = "Falscher PIN!";
+            }
+        }
+
+        function checkAdminPin() {
+            const pin = document.getElementById("adminPin").value;
+            if (pin === ADMIN_PIN) {
+                isAdmin = true;
+                document.getElementById("loginScreen").classList.add("hidden");
+                document.getElementById("mainContent").classList.remove("hidden");
+                document.querySelectorAll(".admin-only").forEach(el => el.style.display = "block");
+                document.getElementById("loginError").textContent = "";
+            } else {
+                document.getElementById("loginError").textContent = "Falscher Admin-PIN!";
+            }
+        }
+
+        function addAnnouncement() {
+            if (!isAdmin) return;
+            const text = document.getElementById("newAnnouncement").value;
+            if (text) {
+                const announcementList = document.getElementById("announcementList");
+                const announcement = document.createElement("p");
+                announcement.textContent = `${new Date().toLocaleString()}: ${text}`;
+                announcementList.appendChild(announcement);
+                document.getElementById("newAnnouncement").value = "";
+            }
+        }
+
+        function assignTeamLeader() {
+            if (!isAdmin) return;
+            const name = document.getElementById("newTeamLeader").value;
+            if (name) {
+                const teamLeaders = document.getElementById("teamLeaders");
+                teamLeaders.textContent = teamLeaders.textContent.includes("Noch keine")
+                    ? name
+                    : teamLeaders.textContent + ", " + name;
+                document.getElementById("newTeamLeader").value = "";
+            }
+        }
+
+        function addWarning() {
+            if (!isAdmin) return;
+            const member = document.getElementById("warnMember").value;
+            const reason = document.getElementById("warnReason").value;
+            if (member && reason) {
+                const allWarnings = document.getElementById("allWarnings");
+                const warning = document.createElement("p");
+                warning.textContent = `${new Date().toLocaleString()}: ${member} - ${reason}`;
+                allWarnings.appendChild(warning);
+                updateUserWarnings(member, reason);
+                document.getElementById("warnMember").value = "";
+                document.getElementById("warnReason").value = "";
+            }
+        }
+
+        function updateUserWarnings(member, reason) {
+            const userWarnings = document.getElementById("userWarnings");
+            if (userWarnings.textContent === "Keine Warnungen") {
+                userWarnings.textContent = `${member}: ${reason}`;
+            } else {
+                userWarnings.textContent += `, ${member}: ${reason}`;
+            }
+        }
+
+        function planMeeting() {
+            if (!isAdmin) return;
+            const date = document.getElementById("meetingDate").value;
+            const time = document.getElementById("meetingTime").value;
+            const location = document.getElementById("meetingLocation").value;
+            if (date && time && location) {
+                document.getElementById("nextMeeting").textContent = `${date} um ${time} in ${location}`;
+                document.getElementById("meetingDate").value = "";
+                document.getElementById("meetingTime").value = "";
+                document.getElementById("meetingLocation").value = "";
+            }
+        }
+
+        function addEvent() {
+            if (!isAdmin) return;
+            const date = document.getElementById("eventDate").value;
+            const time = document.getElementById("eventTime").value;
+            const description = document.getElementById("eventDescription").value;
+            if (date && time && description) {
+                const calendarEvents = document.getElementById("calendarEvents");
+                const event = document.createElement("p");
+                event.textContent = `${date} um ${time}: ${description}`;
+                calendarEvents.appendChild(event);
+                document.getElementById("eventDate").value = "";
+                document.getElementById("eventTime").value = "";
+                document.getElementById("eventDescription").value = "";
+            }
+        }
+    </script>
+</body>
+</html>
